@@ -21,7 +21,7 @@ function request_handler:send_request()
 end
 
 function request_handler:register_autocmd()
-  local event = self.trigger.autocmd
+  local event = self.params.trigger.autocmd
   event = type(event) == "table" and event or {event}
   vim.api.nvim_create_autocmd(event, {
     callback = vim.schedule_wrap(function() self:send_request() end),
@@ -30,17 +30,18 @@ function request_handler:register_autocmd()
 end
 
 function request_handler:get_start_func()
-  self.timer = self.trigger.type == "timer" and vim.loop.new_timer() or nil
-  self.autocmd = self.trigger.type == "autocmd" and self.trigger.autocmd
+  self.timer = self.params.trigger.type == "timer" and vim.loop.new_timer() or nil
+  self.autocmd = self.params.trigger.type == "autocmd" and self.params.trigger.autocmd
   return self.timer and request_handler.start_request_loop or request_handler.register_autocmd
 end
 
 function request_handler:new(opts)
   opts = opts and  vim.tbl_extend("force", defaults, opts) or defaults
   setmetatable({}, self)
+  self.params = opts
   self.start = function ()
     local start_func  = self:get_start_func()
-    vim.schedule(start_func(self))
+    start_func(self)
   end
   return self
 end
@@ -54,9 +55,12 @@ function request_handler:pause_request_loop()
 end
 
 function request_handler:start_request_loop()
-    self.timer:start(self.start_delay, self.debounce, vim.schedule_wrap(function()
-      self:send_request()
-    end))
+  print(vim.inspect(self))
+  local start_delay = self.params.trigger.timer.start_delay
+  local debounce = self.params.trigger.timer.debounce
+  self.timer:start(start_delay, debounce, vim.schedule_wrap(function()
+    self:send_request()
+  end))
 end
 
 return request_handler
