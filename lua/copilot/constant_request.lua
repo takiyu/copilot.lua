@@ -5,8 +5,10 @@ local result_log = {}
 local defaults = {
   handler = function(_, bufnr, response, _)
     if not result_log[bufnr] then result_log[bufnr] = {} end
-    result_log[bufnr][response.method] = response
-    print(vim.inspect(response))
+    local loc = vim.api.nvim_win_get_cursor(0)[1]
+    if response and not vim.tbl_isempty(response.completions) then
+      result_log[bufnr][loc] = response.completions
+    end
   end,
   trigger = {
     type = "timer",
@@ -16,6 +18,13 @@ local defaults = {
   cycling = true,
 }
 
+function request_handler:get_current_completions()
+  local loc = vim.api.nvim_win_get_cursor(0)[1]
+  local bufnr = vim.api.nvim_get_current_buf()
+  if result_log[bufnr] and result_log[bufnr][loc] then
+    return result_log[bufnr][loc]
+  end
+end
 function request_handler:send_request()
   util.send_completion_request(self.cycling, self.handler)
 end
