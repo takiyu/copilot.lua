@@ -61,7 +61,6 @@ M.get_copilot_path = function(plugin_path)
 end
 
 local function completion_handler(_, result, _, _)
-  print(vim.inspect(result))
 end
 
 M.register_completion_handler = function(handler)
