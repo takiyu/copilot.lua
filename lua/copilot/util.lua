@@ -70,9 +70,11 @@ M.register_completion_handler = function(handler)
   end
 end
 
-M.send_completion_request = function()
+M.send_completion_request = function(cycling, handler)
+  local on_completion_handler = handler or completion_handler
   local params = M.get_completion_params()
-  vim.lsp.buf_request(0, "getCompletions", params, completion_handler)
+  local method = cycling and "getCompletionsCycling" or "getCompletions"
+  vim.lsp.buf_request(0, method, params, on_completion_handler)
 end
 
 M.create_request_autocmd = function(group)
