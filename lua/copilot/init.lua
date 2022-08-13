@@ -6,6 +6,7 @@ local defaults = {
     enabled = true,
     method = "getCompletionsCycling",
     autofmt = true,
+    complete_empty = false,
   },
   panel = { -- no config options yet
     enabled = true,
