@@ -33,6 +33,16 @@ local default_config = {
       dismiss = "<C-]>",
     },
   },
+  ---@class copilot_config_connection
+  connection = {
+    ---@type table<'copilot_proxy'|'copilot_proxy_strict_ssl', false|string>
+    http = {
+      copilot_proxy = false,
+      copilot_proxy_strict_ssl = false,
+    },
+    ---@type false|string
+    copilot_auth_provider_url = false,
+  },
   ---@deprecated
   ft_disable = nil,
   ---@type table<string, boolean>
@@ -50,6 +60,28 @@ function mod.setup(opts)
     vim.notify("[Copilot] config is already set", vim.log.levels.WARN)
     return mod.config
   end
+
+  local conn_opts = opts.connection and {
+    proxy = opts.connection.http.copilot_proxy
+      or vim.g.copilot_proxy or vim.NIL,
+    proxyStrictSSL = opts.connection.http.copilot_proxy_strict_ssl
+      or vim.g.copilot_proxy_strict_ssl or vim.NIL,
+    ['github-enterprise'] = {
+      url = opts.connection.copilot_auth_provider_url
+        or vim.g.copilot_auth_provider_url or vim.NIL
+    }
+  } or nil
+
+  if conn_opts then
+    opts.server_opts_overrides = opts.server_opts_overrides or {}
+    opts.server_opts_overrides.settings = vim.tbl_deep_extend(
+      "force",
+      conn_opts or {},
+      opts.server_opts_overrides.settings or {}
+    )
+  end
+
+  opts.server_opts_overrides = opts.server_opts_overrides or {}
 
   local config = vim.tbl_deep_extend("force", default_config, opts or {})
 
