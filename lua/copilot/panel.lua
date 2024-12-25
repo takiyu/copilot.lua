@@ -326,33 +326,59 @@ function panel:ensure_winid()
   local get_width = vim.api.nvim_win_get_width
   local get_height = vim.api.nvim_win_get_height
 
-  local split_map = {
-    top = { cmd_prefix = "topleft ", winsize_fn = get_height },
-    right = { cmd_prefix = "vertical botright ", winsize_fn = get_width },
-    bottom = { cmd_prefix = "botright ", winsize_fn = get_height },
-    left = { cmd_prefix = "vertical topleft ", winsize_fn = get_width },
-    horizontal = { cmd_prefix = "horizontal ", winsize_fn = get_height },
-    vertical = { cmd_prefix = "vertical ", winsize_fn = get_width },
-  }
+  -----------------------------------------------------------------------------
+  -- HACK: Support floating window
+  if position == "float" then
+    -- Floating window mode
+    local float_width = math.floor(get_width(0) * self.layout.ratio)
+    local float_height = math.floor(get_height(0) * self.layout.ratio)
+    local float_col = get_width(0) - float_width
+    local float_row = get_height(0) - float_height - 1
 
-  local split_info = split_map[position]
-  if not split_info then
-    print("Error: " .. position .. " is not a valid position")
-    return
+    self.winid = vim.api.nvim_win_call(0, function()
+      vim.api.nvim_open_win(self.bufnr, true, {
+        relative = "editor",
+        width = float_width,
+        height = float_height,
+        col = float_col,
+        row = float_row,
+        style = "minimal",
+        border = "rounded",
+      })
+      return vim.api.nvim_get_current_win()
+    end)
+
+  else
+    -- Split window mode (original)
+    local split_map = {
+      top = { cmd_prefix = "topleft ", winsize_fn = get_height },
+      right = { cmd_prefix = "vertical botright ", winsize_fn = get_width },
+      bottom = { cmd_prefix = "botright ", winsize_fn = get_height },
+      left = { cmd_prefix = "vertical topleft ", winsize_fn = get_width },
+      horizontal = { cmd_prefix = "horizontal ", winsize_fn = get_height },
+      vertical = { cmd_prefix = "vertical ", winsize_fn = get_width },
+    }
+
+    local split_info = split_map[position]
+    if not split_info then
+      print("Error: " .. position .. " is not a valid position")
+      return
+    end
+
+    local function resolve_splitcmd()
+      local size = math.floor(split_info.winsize_fn(0) * ratio)
+      local cmd_prefix = split_info.cmd_prefix
+      return "silent noswapfile " .. cmd_prefix .. tostring(size) .. " split"
+    end
+
+    self.winid = vim.api.nvim_win_call(0, function()
+      vim.cmd(resolve_splitcmd())
+      return vim.api.nvim_get_current_win()
+    end)
+
+    vim.api.nvim_win_set_buf(self.winid, self.bufnr)
   end
-
-  local function resolve_splitcmd()
-    local size = math.floor(split_info.winsize_fn(0) * ratio)
-    local cmd_prefix = split_info.cmd_prefix
-    return "silent noswapfile " .. cmd_prefix .. tostring(size) .. " split"
-  end
-
-  self.winid = vim.api.nvim_win_call(0, function()
-    vim.cmd(resolve_splitcmd())
-    return vim.api.nvim_get_current_win()
-  end)
-
-  vim.api.nvim_win_set_buf(self.winid, self.bufnr)
+  -----------------------------------------------------------------------------
 
   for name, value in pairs({
     fcs = "eob: ",
