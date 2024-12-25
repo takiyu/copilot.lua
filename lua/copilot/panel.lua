@@ -148,17 +148,38 @@ function panel:add_entry(item)
 
   vim.api.nvim_buf_set_lines(self.bufnr, -1, -1, false, lines)
 
-  vim.api.nvim_buf_set_extmark(self.bufnr, self.ns_id, marker_linenr, 0, {
-    id = marker_linenr + 1,
+  ------------------------------------------------------------------------------
+  -- HACK: Custom highlights
+  local normal_guibg = vim.api.nvim_get_hl_by_name("Normal", true).background
+  vim.api.nvim_set_hl(0, "CopilotInvisible", { fg = normal_guibg, bg = normal_guibg })
+  ------------------------------------------------------------------------------
+
+  vim.api.nvim_buf_set_extmark(self.bufnr, self.ns_id, marker_linenr + 1, 0, {
+    id = marker_linenr + 2,
     virt_text = {
       {
         string.format("%s:id:%s: :score:%s:", marker_prefix, item.solutionId, item.score),
+        "CopilotInvisible",  -- HACK
+      },
+    },
+    virt_text_pos = "overlay",
+    hl_mode = "combine",
+  })
+
+  ------------------------------------------------------------------------------
+  -- HACK: Horizontal line
+  vim.api.nvim_buf_set_extmark(self.bufnr, self.ns_id, marker_linenr + 0, 0, {
+    id = marker_linenr + 1,
+    virt_text = {
+      {
+        string.rep("─", vim.api.nvim_win_get_width(0)),
         hl_group.CopilotAnnotation,
       },
     },
     virt_text_pos = "overlay",
     hl_mode = "combine",
   })
+  ------------------------------------------------------------------------------
 
   return self
 end
